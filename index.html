@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Termux Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10;--sf:#0f1318;--s2:#161b24;--s3:#1c2333;
+  --bd:#1e2d40;--ac:#00d4ff;--a2:#7c3aed;--a3:#10b981;
+  --a4:#f59e0b;--dn:#ef4444;--tx:#e2e8f0;--t2:#94a3b8;--t3:#475569;
+  --r:12px;--tbh:52px;--bnh:60px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--tx);font-family:'JetBrains Mono',monospace}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:99px}
+
+/* ── LOGIN ── */
+#ls{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.lg-bg{position:absolute;inset:0;overflow:hidden}
+.lg-bg::before{content:'';position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(0,212,255,.08) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);animation:lgp 4s ease-in-out infinite}
+.lg-bg::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,.01) 40px,rgba(255,255,255,.01) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,.01) 40px,rgba(255,255,255,.01) 41px)}
+@keyframes lgp{0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}}
+.lg-card{position:relative;z-index:1;background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:40px 36px;width:min(420px,92vw);box-shadow:0 0 60px rgba(0,0,0,.7);animation:lgIn .5s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes lgIn{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
+.lg-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.lg-ic{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--ac),var(--a2));display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px rgba(0,212,255,.3);flex-shrink:0}
+.lg-ti{font-family:'Syne',sans-serif;font-size:22px;font-weight:800}
+.lg-su{font-size:11px;color:var(--t3);margin-top:2px}
+.lg-la{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:8px}
+.lg-wr{position:relative;margin-bottom:18px}
+.lg-in{width:100%;padding:14px 48px 14px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:16px;outline:none;transition:border-color .2s,box-shadow .2s;letter-spacing:3px}
+.lg-in:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(0,212,255,.1)}
+.lg-ey{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;padding:4px 6px}
+.lg-bt{width:100%;padding:15px;background:linear-gradient(135deg,var(--ac),#0099cc);border:none;border-radius:10px;color:#000;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;cursor:pointer;letter-spacing:1px}
+.lg-bt:active{transform:scale(.98)}
+.lg-er{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:8px;padding:10px 14px;font-size:12px;margin-top:12px;display:none}
+
+/* ── APP ── */
+#app{display:none;height:100dvh;flex-direction:column}
+#app.on{display:flex}
+.topbar{height:var(--tbh);background:var(--sf);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.tb-lo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--ac)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--a3);animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.tb-ti{font-size:11px;color:var(--t3);margin-left:auto;white-space:nowrap}
+.tb-lo2{background:transparent;border:1px solid var(--bd);color:var(--t2);padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'JetBrains Mono',monospace}
+.tb-lo2:active{border-color:var(--dn);color:var(--dn)}
+.body{flex:1;display:flex;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:210px;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:14px 10px;gap:3px;flex-shrink:0}
+.ni{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;cursor:pointer;color:var(--t2);border:1px solid transparent;transition:all .15s;user-select:none}
+.ni:hover{background:var(--s2);color:var(--tx)}
+.ni.on{background:rgba(0,212,255,.1);color:var(--ac);border-color:rgba(0,212,255,.2)}
+.ni-ic{font-size:17px;width:22px;text-align:center;flex-shrink:0}
+.ni-lb{font-family:'Syne',sans-serif;font-weight:600;font-size:13px}
+
+/* ── BOTTOM NAV ── */
+.bnav{display:none;height:var(--bnh);background:var(--sf);border-top:1px solid var(--bd);flex-shrink:0}
+.bn-in{height:100%;display:flex}
+.bi{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--t3);border:none;background:transparent;user-select:none}
+.bi.on{color:var(--ac)}
+.bi-ic{font-size:20px;line-height:1}
+.bi-lb{font-size:9px;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.panel{display:none;flex:1;overflow:hidden;flex-direction:column}
+.panel.on{display:flex}
+.ph{padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.pt{font-family:'Syne',sans-serif;font-weight:800;font-size:17px}
+.bs{padding:6px 13px;border-radius:8px;font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;border:1px solid var(--bd);background:var(--s2);color:var(--t2);white-space:nowrap;user-select:none}
+.bs:active{border-color:var(--ac);color:var(--ac)}
+.bs.dk:active{border-color:var(--dn);color:var(--dn)}
+.mla{margin-left:auto}
+.ld{color:var(--t3);font-size:12px;padding:40px;text-align:center}
+
+/* ── FILES ── */
+.ftb{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.bc{flex:1;min-width:0;display:flex;align-items:center;gap:2px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:7px 11px;overflow-x:auto;white-space:nowrap}
+.bc::-webkit-scrollbar{height:0}
+.bcp{font-size:12px;color:var(--t3);cursor:pointer;padding:1px 4px;border-radius:4px;flex-shrink:0}
+.bcp:active{color:var(--ac)}
+.bcs{color:var(--t3);font-size:11px;flex-shrink:0}
+.upb{padding:7px 12px;border-radius:8px;font-size:18px;line-height:1;border:1px solid var(--bd);background:var(--s2);color:var(--t2);cursor:pointer;flex-shrink:0}
+.upb:active{border-color:var(--ac);color:var(--ac)}
+.fg{flex:1;overflow-y:auto;padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;align-content:start}
+.fi{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;user-select:none}
+.fi:active,.fi.sel{border-color:var(--ac);background:rgba(0,212,255,.07)}
+.fi-ic{font-size:26px}
+.fi-nm{font-size:11px;word-break:break-all;color:var(--t2);line-height:1.3}
+.fi-sz{font-size:10px;color:var(--t3)}
+
+/* ── OVERLAYS ── */
+.ov{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:12px}
+.ov.on{display:flex}
+.vb{background:var(--sf);border:1px solid var(--bd);border-radius:16px;width:100%;max-width:860px;height:min(85vh,680px);display:flex;flex-direction:column}
+.vh{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.vt{flex:1;font-size:12px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vbd{flex:1;overflow:hidden;display:flex}
+#fedit{flex:1;background:transparent;border:none;outline:none;color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;padding:16px;resize:none;overflow-y:auto}
+.xb{background:transparent;border:none;color:var(--t3);font-size:22px;cursor:pointer;padding:2px 6px;line-height:1}
+.xb:active{color:var(--dn)}
+.kov{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.8);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
+.kov.on{display:flex}
+.kb{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:28px;width:min(380px,94vw);text-align:center}
+.kt{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin-bottom:8px}
+.ks{font-size:12px;color:var(--t2);margin-bottom:24px}
+.kbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.kbtn{padding:10px 20px;border-radius:9px;border:1px solid var(--bd);font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;background:var(--s2);color:var(--t2)}
+.kbtn.te{border-color:var(--a4);color:var(--a4)}
+.kbtn.ki{border-color:var(--dn);color:var(--dn)}
+.kbtn:active{opacity:.7}
+.kfab{display:none;position:fixed;right:14px;background:var(--dn);color:#fff;border:none;border-radius:50%;width:52px;height:52px;font-size:22px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(239,68,68,.5);align-items:center;justify-content:center}
+.kfab.on{display:flex}
+
+/* ── SPECS ── */
+.sc{flex:1;overflow-y:auto;padding:14px}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.scard{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:18px;animation:fu .3s ease both}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sct{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--ac);margin-bottom:14px}
+.sr{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sr:last-child{border-bottom:none}
+.sk{font-size:11px;color:var(--t3);flex-shrink:0;padding-right:10px}
+.sv{font-size:11px;color:var(--tx);text-align:right;word-break:break-all}
+.br{display:flex;flex-direction:column;gap:5px;margin:8px 0}
+.bl{display:flex;justify-content:space-between;font-size:11px;color:var(--t2)}
+.bt{height:6px;background:var(--s3);border-radius:99px;overflow:hidden}
+.bf{height:100%;border-radius:99px;transition:width .5s ease;background:linear-gradient(90deg,var(--ac),var(--a2))}
+.bf.g{background:linear-gradient(90deg,var(--a3),#059669)}
+.bf.a{background:linear-gradient(90deg,var(--a4),#d97706)}
+
+/* ── MONITOR ── */
+.ms{flex:1;overflow-y:auto}
+.gs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:14px;border-bottom:1px solid var(--bd)}
+.gc{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:14px 12px;text-align:center}
+.gv{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;background:linear-gradient(135deg,var(--ac),#60efff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.gv.g{background:linear-gradient(135deg,var(--a3),#6ee7b7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.gv.a{background:linear-gradient(135deg,var(--a4),#fcd34d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.gl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px}
+.gsub{font-size:10px;color:var(--t2);margin-top:5px}
+.gb{margin-top:8px;height:4px;background:var(--s3);border-radius:99px;overflow:hidden}
+.gbf{height:100%;border-radius:99px}
+.gbf.cpu{background:linear-gradient(90deg,var(--ac),var(--a2))}
+.gbf.mem{background:linear-gradient(90deg,var(--a3),#059669)}
+.gbf.dsk{background:linear-gradient(90deg,var(--a4),#d97706)}
+.tmhr{display:flex;padding:9px 14px;border-bottom:1px solid var(--bd);font-size:10px;color:var(--t3);text-transform:uppercase;background:var(--sf);position:sticky;top:0}
+.tmr{display:flex;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;cursor:pointer;align-items:center}
+.tmr:active,.tmr.sel{background:rgba(0,212,255,.07)}
+.cp{width:56px;flex-shrink:0;color:var(--t3);font-size:11px}
+.cn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs{width:28px;flex-shrink:0;text-align:center}
+.cm{width:60px;flex-shrink:0;text-align:right;color:var(--a3);font-size:11px}
+.cc{width:50px;flex-shrink:0;text-align:right;color:var(--ac);font-size:11px}
+.ct{width:36px;flex-shrink:0;text-align:right;color:var(--t3);font-size:11px}
+.tms{margin:10px 14px 0;padding:8px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:calc(100% - 28px)}
+.tms:focus{border-color:var(--ac)}
+.tmc{font-size:11px;color:var(--t3);margin:6px 14px 8px}
+
+/* ── TERMINAL ── */
+.tp{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0a0c10}
+.qbar{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--bd);overflow-x:auto;flex-shrink:0}
+.qbar::-webkit-scrollbar{height:0}
+.qc{padding:5px 11px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;font-size:11px;color:var(--t3);cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace;user-select:none}
+.qc:active{border-color:var(--ac);color:var(--ac)}
+
+/* Self-contained terminal screen */
+#term-screen{
+  flex:1;overflow:hidden;position:relative;
+  background:#0a0c10;
+  /* trick: use a contenteditable hidden input to capture mobile keyboard */
+}
+#term-output{
+  position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  padding:8px 10px;
+  font-family:'JetBrains Mono','Courier New',monospace;
+  font-size:13px;line-height:1.55;
+  color:#e2e8f0;
+  white-space:pre-wrap;word-break:break-all;
+  cursor:text;
+}
+/* hidden input to capture keyboard on mobile */
+#term-capture{
+  position:absolute;opacity:0;width:1px;height:1px;
+  top:0;left:0;border:none;outline:none;background:transparent;
+  color:transparent;caret-color:transparent;
+  font-size:16px;/* prevent iOS zoom */
+}
+
+/* ANSI color classes */
+.a30{color:#1e2d40}.a31{color:#ef4444}.a32{color:#10b981}.a33{color:#f59e0b}
+.a34{color:#3b82f6}.a35{color:#7c3aed}.a36{color:#00d4ff}.a37{color:#e2e8f0}
+.a90{color:#475569}.a91{color:#fca5a5}.a92{color:#6ee7b7}.a93{color:#fcd34d}
+.a94{color:#93c5fd}.a95{color:#c4b5fd}.a96{color:#67e8f9}.a97{color:#f8fafc}
+.a40{background:#1e2d40}.a41{background:#ef4444}.a42{background:#10b981}.a43{background:#f59e0b}
+.a44{background:#3b82f6}.a45{background:#7c3aed}.a46{background:#00d4ff}.a47{background:#e2e8f0}
+.ab{font-weight:700}.ai{font-style:italic}.au{text-decoration:underline}
+
+/* cursor blink */
+.cur{display:inline-block;width:8px;height:1.1em;background:#00d4ff;vertical-align:text-bottom;animation:curb .8s step-end infinite}
+@keyframes curb{0%,100%{opacity:1}50%{opacity:0}}
+
+/* keybind bar */
+.kbar{display:none;flex-direction:column;flex-shrink:0;border-top:1px solid var(--bd);background:var(--sf)}
+.krow{display:flex;overflow-x:auto;flex-shrink:0}
+.krow::-webkit-scrollbar{height:0}
+.krow+.krow{border-top:1px solid var(--bd)}
+.kk{padding:11px 14px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--t2);cursor:pointer;white-space:nowrap;flex-shrink:0;border-right:1px solid var(--bd);user-select:none;background:var(--sf);transition:background .1s,color .1s}
+.kk:active{background:var(--s3);color:var(--ac)}
+.kk.mod{color:var(--t3)}
+.kk.mod.on{background:rgba(0,212,255,.14);color:var(--ac);border-bottom:2px solid var(--ac)}
+.kk.ent{color:var(--a3);font-weight:700}
+.kk.red{color:var(--dn)}
+
+/* ── USER ── */
+.us{flex:1;overflow-y:auto;padding:14px}
+.ug{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.uh{grid-column:1/-1;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:20px;display:flex;align-items:center;gap:16px}
+.ua{width:56px;height:56px;border-radius:14px;flex-shrink:0;background:linear-gradient(135deg,var(--a2),var(--ac));display:flex;align-items:center;justify-content:center;font-size:24px;font-family:'Syne',sans-serif;font-weight:800;color:#fff}
+.un{font-family:'Syne',sans-serif;font-size:20px;font-weight:800}
+.um{font-size:11px;color:var(--t3);margin-top:3px}
+.tl{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tag{padding:3px 9px;border-radius:99px;font-size:10px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--ac)}
+.etbl{width:100%;border-collapse:collapse;font-size:11px}
+.etbl tr{border-bottom:1px solid rgba(255,255,255,.04)}
+.etbl td{padding:5px 3px;vertical-align:top}
+.etbl td:first-child{color:var(--ac);width:38%;word-break:break-all;padding-right:10px}
+.etbl td:last-child{color:var(--t3);word-break:break-all}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  .sidebar{display:none}.bnav{display:block}.kbar{display:flex}
+  .kfab{bottom:calc(var(--bnh) + 14px)}
+  .tb-ti{display:none}
+  .fg{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;padding:10px}
+  .gs{grid-template-columns:repeat(3,1fr);gap:8px;padding:10px}
+  .gv{font-size:24px}.sg,.ug{grid-template-columns:1fr}
+  .ct,.cc{display:none}
+}
+@media(min-width:641px){.kfab{bottom:14px}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="ls">
+  <div class="lg-bg"></div>
+  <div class="lg-card">
+    <div class="lg-logo">
+      <div class="lg-ic">⚡</div>
+      <div><div class="lg-ti">TERMUX</div><div class="lg-su">DASHBOARD v3.0</div></div>
+    </div>
+    <label class="lg-la">Access Password</label>
+    <div class="lg-wr">
+      <input type="password" id="pwd" class="lg-in" placeholder="Enter password…" autocomplete="current-password">
+      <button class="lg-ey" id="eyebtn" onclick="togglePwd()">👁</button>
+    </div>
+    <button class="lg-bt" onclick="doLogin()">AUTHENTICATE →</button>
+    <div class="lg-er" id="lg-er">⚠ Invalid password.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <span class="tb-lo">⚡ TERMUX</span>
+    <div class="sdot" id="sdot"></div>
+    <span id="sstat" style="font-size:11px;color:var(--t3)">–</span>
+    <span class="tb-ti" id="clk"></span>
+    <button class="tb-lo2" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div class="body">
+    <nav class="sidebar">
+      <div class="ni on" id="n-files"    onclick="go('files')">  <span class="ni-ic">📁</span><span class="ni-lb">Files</span></div>
+      <div class="ni"    id="n-specs"    onclick="go('specs')">  <span class="ni-ic">💻</span><span class="ni-lb">Specs</span></div>
+      <div class="ni"    id="n-monitor"  onclick="go('monitor')"><span class="ni-ic">📊</span><span class="ni-lb">Monitor</span></div>
+      <div class="ni"    id="n-terminal" onclick="go('terminal')"><span class="ni-ic">🖥</span><span class="ni-lb">Terminal</span></div>
+      <div class="ni"    id="n-user"     onclick="go('user')">   <span class="ni-ic">👤</span><span class="ni-lb">User</span></div>
+    </nav>
+
+    <div class="content">
+
+      <!-- FILES -->
+      <div class="panel on" id="p-files">
+        <div class="ph">
+          <span class="pt">📁 Files</span>
+          <button class="bs" onclick="toggleH()">👁 Hidden</button>
+          <button class="bs" onclick="mkDir()">+ Folder</button>
+          <button class="bs dk" id="delbtn" style="display:none" onclick="delSel()">🗑 Delete</button>
+        </div>
+        <div class="ftb">
+          <button class="upb" onclick="goUp()">↑</button>
+          <div class="bc" id="bc"></div>
+        </div>
+        <div class="fg" id="fg"></div>
+      </div>
+
+      <!-- SPECS -->
+      <div class="panel" id="p-specs">
+        <div class="ph"><span class="pt">💻 Specs</span><button class="bs mla" onclick="loadSpecs()">↻ Refresh</button></div>
+        <div class="sc"><div class="sg" id="sg"><div class="ld">Loading…</div></div></div>
+      </div>
+
+      <!-- MONITOR -->
+      <div class="panel" id="p-monitor">
+        <div class="ph">
+          <span class="pt">📊 Task Manager</span>
+          <span id="mcnt" style="font-size:11px;color:var(--t3)"></span>
+          <button class="bs mla" onclick="loadMon()">↻ Refresh</button>
+        </div>
+        <div class="ms">
+          <div class="gs" id="gauges"></div>
+          <input class="tms" id="tmsrch" placeholder="🔍 Filter processes…" oninput="filterP()">
+          <div class="tmc" id="tmcnt"></div>
+          <div class="tmhr">
+            <span class="cp">PID</span><span class="cn">Name</span>
+            <span class="cs">St</span><span class="cm">Mem</span>
+            <span class="cc">CPUt</span><span class="ct">Thr</span>
+          </div>
+          <div id="plist"></div>
+        </div>
+      </div>
+
+      <!-- TERMINAL -->
+      <div class="panel" id="p-terminal">
+        <div class="ph">
+          <span class="pt">🖥 Terminal</span>
+          <span id="tstat" style="font-size:11px;color:var(--t3)">Disconnected</span>
+          <button class="bs mla" onclick="reconnect()">↻ Reconnect</button>
+        </div>
+        <div class="tp">
+          <div class="qbar">
+            <span class="qc" onclick="tw('ls -la\r')">ls -la</span>
+            <span class="qc" onclick="tw('pwd\r')">pwd</span>
+            <span class="qc" onclick="tw('df -h\r')">df -h</span>
+            <span class="qc" onclick="tw('free -h\r')">free</span>
+            <span class="qc" onclick="tw('top\r')">top</span>
+            <span class="qc" onclick="tw('python3\r')">python3</span>
+            <span class="qc" onclick="tw('nano\r')">nano</span>
+            <span class="qc" onclick="tw('vim\r')">vim</span>
+            <span class="qc" onclick="tw('env\r')">env</span>
+            <span class="qc" onclick="tw('uname -a\r')">uname</span>
+            <span class="qc" onclick="tw('ps aux\r')">ps</span>
+            <span class="qc" onclick="tw('ip addr\r')">ip</span>
+          </div>
+          <!-- The actual terminal display + hidden input capture -->
+          <div id="term-screen" onclick="focusTerm()">
+            <div id="term-output"></div>
+            <input id="term-capture" type="text"
+              autocomplete="off" autocorrect="off"
+              autocapitalize="none" spellcheck="false">
+          </div>
+          <!-- Mobile keybind bar -->
+          <div class="kbar" id="kbar">
+            <div class="krow">
+              <span class="kk mod" id="m-ctrl"  onclick="tmod('ctrl')">Ctrl</span>
+              <span class="kk mod" id="m-alt"   onclick="tmod('alt')">Alt</span>
+              <span class="kk mod" id="m-shift" onclick="tmod('shift')">Shift</span>
+              <span class="kk" style="border-left:2px solid var(--bd)" onclick="tw('\t')">Tab</span>
+              <span class="kk" onclick="tw('\x1b')">Esc</span>
+              <span class="kk" onclick="tw('\x1b[A')">↑</span>
+              <span class="kk" onclick="tw('\x1b[B')">↓</span>
+              <span class="kk" onclick="tw('\x1b[D')">←</span>
+              <span class="kk" onclick="tw('\x1b[C')">→</span>
+              <span class="kk" onclick="tw('\x1bOH')">Home</span>
+              <span class="kk" onclick="tw('\x1bOF')">End</span>
+              <span class="kk ent" onclick="tw('\r')">⏎ Enter</span>
+            </div>
+            <div class="krow">
+              <span class="kk" onclick="tc('a')">^A</span>
+              <span class="kk" onclick="tc('e')">^E</span>
+              <span class="kk" onclick="tc('k')">^K</span>
+              <span class="kk" onclick="tc('u')">^U</span>
+              <span class="kk" onclick="tc('w')">^W</span>
+              <span class="kk" onclick="tc('l')">^L</span>
+              <span class="kk red" onclick="tc('c')">^C</span>
+              <span class="kk" onclick="tc('d')">^D</span>
+              <span class="kk" onclick="tc('z')">^Z</span>
+              <span class="kk" onclick="tc('r')">^R</span>
+              <span class="kk" onclick="tw('\x7f')">⌫</span>
+              <span class="kk" onclick="tw('\x1b[3~')">Del</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER -->
+      <div class="panel" id="p-user">
+        <div class="ph"><span class="pt">👤 User</span><button class="bs mla" onclick="loadUser()">↻ Refresh</button></div>
+        <div class="us"><div class="ug" id="ug"><div class="ld">Loading…</div></div></div>
+      </div>
+
+    </div><!-- .content -->
+  </div><!-- .body -->
+
+  <div class="bnav">
+    <div class="bn-in">
+      <button class="bi on" id="b-files"    onclick="go('files')">  <span class="bi-ic">📁</span><span class="bi-lb">Files</span></button>
+      <button class="bi"    id="b-specs"    onclick="go('specs')">  <span class="bi-ic">💻</span><span class="bi-lb">Specs</span></button>
+      <button class="bi"    id="b-monitor"  onclick="go('monitor')"><span class="bi-ic">📊</span><span class="bi-lb">Monitor</span></button>
+      <button class="bi"    id="b-terminal" onclick="go('terminal')"><span class="bi-ic">🖥</span><span class="bi-lb">Term</span></button>
+      <button class="bi"    id="b-user"     onclick="go('user')">   <span class="bi-ic">👤</span><span class="bi-lb">User</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- file viewer -->
+<div class="ov" id="fov">
+  <div class="vb">
+    <div class="vh">
+      <span>📄</span><span class="vt" id="vtitle"></span>
+      <button class="bs" onclick="saveF()">💾 Save</button>
+      <button class="xb" onclick="closeV()">✕</button>
+    </div>
+    <div class="vbd"><textarea id="fedit" spellcheck="false"></textarea></div>
+  </div>
+</div>
+
+<!-- kill dialog -->
+<div class="kov" id="kov">
+  <div class="kb">
+    <div class="kt">Kill Process?</div>
+    <div class="ks" id="ksub"></div>
+    <div class="kbtns">
+      <button class="kbtn te" onclick="doKill('TERM')">SIGTERM</button>
+      <button class="kbtn ki" onclick="doKill('KILL')">SIGKILL</button>
+      <button class="kbtn" onclick="closeKill()">Cancel</button>
+    </div>
+  </div>
+</div>
+<button class="kfab" id="kfab" onclick="openKill()">☠</button>
+
+<script>
+// ═══════════════════════════
+// UTILS
+// ═══════════════════════════
+const $  = id => document.getElementById(id);
+const api = (u,o={}) => fetch(u,{headers:{'Content-Type':'application/json'},credentials:'same-origin',...o}).then(r=>r.json());
+const post = (u,b) => api(u,{method:'POST',body:JSON.stringify(b)});
+const esc  = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function fb(b){b=+b;if(b<1024)return b+'B';if(b<1<<20)return(b/1024).toFixed(1)+'K';if(b<1<<30)return(b/1048576).toFixed(1)+'M';return(b/1073741824).toFixed(1)+'G';}
+
+// ═══════════════════════════
+// LOGIN
+// ═══════════════════════════
+function togglePwd(){const i=$('pwd');const b=$('eyebtn');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'👁':'🙈';}
+$('pwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+async function doLogin(){
+  const pw=$('pwd').value,er=$('lg-er');er.style.display='none';
+  const r=await post('/api/login',{password:pw});
+  if(r.success){
+    const l=$('ls');l.style.cssText='transition:opacity .3s;opacity:0';
+    setTimeout(()=>{l.style.display='none';$('app').classList.add('on');initApp();},300);
+  }else{er.style.display='block';$('pwd').value='';$('pwd').focus();}
+}
+async function doLogout(){await post('/api/logout',{});location.reload();}
+
+// ═══════════════════════════
+// INIT
+// ═══════════════════════════
+function initApp(){tick();setInterval(tick,1000);loadFiles();initTerm();}
+function tick(){
+  const d=new Date();
+  $('clk').textContent=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ═══════════════════════════
+// NAV
+// ═══════════════════════════
+let _mi=null;
+function go(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ni,.bi').forEach(n=>n.classList.remove('on'));
+  $('p-'+name).classList.add('on');
+  const a=$('n-'+name);if(a)a.classList.add('on');
+  const b=$('b-'+name);if(b)b.classList.add('on');
+  if(name==='specs')loadSpecs();
+  if(name==='monitor'){loadMon();if(!_mi)_mi=setInterval(loadMon,4000);}
+  else{clearInterval(_mi);_mi=null;}
+  if(name==='user')loadUser();
+  if(name==='terminal')setTimeout(focusTerm,100);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TERMINAL — self-contained ANSI renderer + WS PTY bridge
+// ═══════════════════════════════════════════════════════════
+let ws = null;
+const output = () => $('term-output');
+const capture = () => $('term-capture');
+
+// ── Terminal output renderer ─────────────────────────────
+// Server sends pre-rendered HTML (ANSI already converted).
+// We just append it and scroll.
+const MAX_TERM_CHARS = 400000;
+
+function appendOutput(html){
+  const o = output();
+  o.innerHTML += html;
+  // Trim if too long
+  if(o.innerHTML.length > MAX_TERM_CHARS){
+    o.innerHTML = o.innerHTML.slice(-MAX_TERM_CHARS);
+  }
+  o.scrollTop = o.scrollHeight;
+}
+
+
+// ── WebSocket connection ─────────────────────────────────
+let _termInited = false;
+async function initTerm(){
+  if(_termInited) return;
+  _termInited = true;
+  setupCapture();
+  connect();
+}
+
+async function connect(){
+  setTstat('Connecting…',false);
+  try{
+    const r=await post('/api/pty/token',{});
+    if(!r.token){setTstat('Token error – is server running?',false);return;}
+    const proto=location.protocol==='https:'?'wss':'ws';
+    const url=`${proto}://${location.hostname}:${r.ws_port||8081}/?token=${r.token}`;
+    ws=new WebSocket(url);
+    ws.onopen=()=>{setTstat('Connected ✓',true);focusTerm();};
+    ws.onmessage=e=>{
+      // Server sends pre-rendered HTML text frames
+      appendOutput(typeof e.data === 'string' ? e.data : new TextDecoder().decode(e.data));
+    };
+    ws.onclose=()=>setTstat('Disconnected – click ↻ Reconnect',false);
+    ws.onerror=(e)=>setTstat('WS error',false);
+  }catch(ex){setTstat('Error: '+ex.message,false);}
+}
+
+function reconnect(){
+  if(ws){try{ws.close();}catch(e){}ws=null;}
+  $('term-output').innerHTML='';
+  connect();
+}
+
+function setTstat(msg,ok){
+  $('tstat').textContent=msg;$('tstat').style.color=ok?'var(--a3)':'var(--t3)';
+  $('sdot').style.background=ok?'var(--a3)':'var(--t3)';
+  $('sstat').textContent=ok?'PTY live':msg;
+}
+
+// ── Keyboard input ──────────────────────────────────────
+function tw(s){
+  if(ws&&ws.readyState===WebSocket.OPEN)ws.send(s);
+  focusTerm();
+}
+function tc(k){tw(String.fromCharCode(k.toLowerCase().charCodeAt(0)-96));}
+function focusTerm(){try{capture().focus();}catch(e){}}
+
+function setupCapture(){
+  const cap=capture();
+  let _kdHandled=false, _inCompose=false;
+
+  const SEQ={
+    'ArrowUp':'\x1b[A','ArrowDown':'\x1b[B','ArrowRight':'\x1b[C','ArrowLeft':'\x1b[D',
+    'Home':'\x1bOH','End':'\x1bOF','PageUp':'\x1b[5~','PageDown':'\x1b[6~',
+    'Insert':'\x1b[2~','Delete':'\x1b[3~',
+    'F1':'\x1bOP','F2':'\x1bOQ','F3':'\x1bOR','F4':'\x1bOS',
+    'F5':'\x1b[15~','F6':'\x1b[17~','F7':'\x1b[18~','F8':'\x1b[19~',
+    'F9':'\x1b[20~','F10':'\x1b[21~','F11':'\x1b[23~','F12':'\x1b[24~',
+    'Escape':'\x1b','Tab':'\t',
+  };
+
+  cap.addEventListener('compositionstart',()=>{ _inCompose=true; });
+  cap.addEventListener('compositionend',e=>{
+    _inCompose=false; _kdHandled=true;
+    const txt=cap.value; if(txt){tw(txt);cap.value='';}
+  });
+
+  cap.addEventListener('keydown',e=>{
+    _kdHandled=false;
+    if(_inCompose) return;
+    const key=e.key;
+
+    if(e.ctrlKey&&!e.altKey){
+      if(key.length===1&&key>=' '&&key<='~'){
+        e.preventDefault();_kdHandled=true;
+        tw(String.fromCharCode(key.toLowerCase().charCodeAt(0)-96));return;
+      }
+      const ca={'ArrowLeft':'\x1b[1;5D','ArrowRight':'\x1b[1;5C','ArrowUp':'\x1b[1;5A','ArrowDown':'\x1b[1;5B'};
+      if(ca[key]){e.preventDefault();_kdHandled=true;tw(ca[key]);return;}
+    }
+    if(e.altKey&&!e.ctrlKey){
+      e.preventDefault();_kdHandled=true;
+      if(key==='ArrowLeft') {tw('\x1bb');return;}
+      if(key==='ArrowRight'){tw('\x1bf');return;}
+      if(key==='Backspace') {tw('\x1b\x7f');return;}
+      if(key.length===1)    {tw('\x1b'+key);return;}
+      _kdHandled=false;
+    }
+    if(SEQ[key]){e.preventDefault();_kdHandled=true;tw(SEQ[key]);return;}
+    if(key==='Enter')    {e.preventDefault();_kdHandled=true;tw('\r');return;}
+    if(key==='Backspace'){e.preventDefault();_kdHandled=true;tw('\x7f');return;}
+    // printable key: let browser insert into cap.value, input event will pick it up
+    _kdHandled=false;
+  });
+
+  cap.addEventListener('input',e=>{
+    if(_kdHandled){_kdHandled=false;cap.value='';return;}
+    if(_inCompose) return;
+    const val=cap.value;
+    if(val){tw(val);cap.value='';}
+  });
+}
+
+// ── Mobile modifiers ──────────────────────────────────
+const mods={ctrl:false,alt:false,shift:false};
+function tmod(m){
+  mods[m]=!mods[m];
+  $('m-'+m).classList.toggle('on',mods[m]);
+}
+function clearMods(){['ctrl','alt','shift'].forEach(m=>{mods[m]=false;$('m-'+m).classList.remove('on');});}
+
+// Override tw for modifier-aware keybind bar keys
+// (already handled inline in kk onclick for the shortcut row)
+
+// ═══════════════════════════
+// FILES
+// ═══════════════════════════
+let curP='',showH=false,selPath=null,viewP='',lastTap=0;
+async function loadFiles(p){
+  const r=await api('/api/files?path='+encodeURIComponent(p||curP||''));
+  curP=r.path||curP;renderBC(curP);renderFiles(r);desel();
+}
+function renderBC(path){
+  const parts=path.split('/').filter(Boolean);
+  let h=`<span class="bcp" onclick="loadFiles('/')">root</span>`;let b='';
+  parts.forEach(p=>{b+='/'+p;const bp=b;h+=`<span class="bcs">/</span><span class="bcp" onclick="loadFiles('${esc(bp)}')">${esc(p)}</span>`;});
+  $('bc').innerHTML=h;
+}
+function goUp(){if(!curP||curP==='/')return;loadFiles(curP.split('/').slice(0,-1).join('/')||'/');}
+function renderFiles(r){
+  const g=$('fg');
+  if(r.error&&!r.entries?.length){g.innerHTML=`<div style="padding:20px;color:var(--dn);font-size:12px">⚠ ${esc(r.error)}</div>`;return;}
+  let es=(r.entries||[]);if(!showH)es=es.filter(e=>!e.hidden);
+  es.sort((a,b)=>a.is_dir===b.is_dir?a.name.localeCompare(b.name):a.is_dir?-1:1);
+  if(!es.length){g.innerHTML='<div style="padding:40px;color:var(--t3);font-size:12px;text-align:center">📭 Empty</div>';return;}
+  const ic={py:'🐍',js:'📜',ts:'📜',json:'📋',txt:'📄',md:'📝',html:'🌐',css:'🎨',sh:'⚙️',bash:'⚙️',zip:'🗜',tar:'🗜',gz:'🗜',jpg:'🖼',jpeg:'🖼',png:'🖼',gif:'🖼',mp4:'🎬',mp3:'🎵',pdf:'📕',apk:'📦',deb:'📦',c:'💠',cpp:'💠',java:'☕',rb:'💎',go:'🐹',rs:'🦀'};
+  const gi=e=>e.is_dir?'📁':(ic[e.name.split('.').pop().toLowerCase()]||'📄');
+  g.innerHTML=es.map(e=>{const sp=e.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'");return`<div class="fi" onclick="selF('${sp}',${e.is_dir})" ondblclick="openF('${sp}',${e.is_dir})" title="${esc(e.name)}"><div class="fi-ic">${gi(e)}</div><div class="fi-nm">${esc(e.name)}</div>${!e.is_dir?`<div class="fi-sz">${fb(e.size)}</div>`:''}</div>`;}).join('');
+}
+function selF(path,isDir){const now=Date.now();if(now-lastTap<350){lastTap=0;if(isDir)loadFiles(path);else openViewer(path);return;}lastTap=now;document.querySelectorAll('.fi').forEach(i=>i.classList.remove('sel'));event?.currentTarget?.classList.add('sel');selPath=path;$('delbtn').style.display='inline-flex';}
+function openF(path,isDir){if(isDir)loadFiles(path);else openViewer(path);}
+function desel(){selPath=null;$('delbtn').style.display='none';document.querySelectorAll('.fi').forEach(i=>i.classList.remove('sel'));}
+async function openViewer(path){const r=await api('/api/file/read?path='+encodeURIComponent(path));if(r.error){alert('Cannot open: '+r.error);return;}viewP=path;$('vtitle').textContent=path.split('/').pop();$('fedit').value=r.content;$('fov').classList.add('on');}
+function closeV(){$('fov').classList.remove('on');}
+async function saveF(){const r=await post('/api/file/write',{path:viewP,content:$('fedit').value});const b=document.querySelector('.vh .bs');if(r.success){b.textContent='✓ Saved';setTimeout(()=>b.textContent='💾 Save',1500);}else alert('Save failed: '+r.error);}
+async function delSel(){if(!selPath)return;if(!confirm('Delete "'+selPath.split('/').pop()+'"?'))return;const r=await post('/api/file/delete',{path:selPath});if(r.success)loadFiles(curP);else alert('Delete failed: '+r.error);}
+async function mkDir(){const n=prompt('Folder name:');if(!n)return;const r=await post('/api/file/mkdir',{path:curP+'/'+n});if(r.success)loadFiles(curP);else alert('Failed: '+r.error);}
+function toggleH(){showH=!showH;loadFiles(curP);}
+
+// ═══════════════════════════
+// SPECS
+// ═══════════════════════════
+async function loadSpecs(){
+  $('sg').innerHTML='<div class="ld">Loading…</div>';
+  const d=await api('/api/specs');if(d.error){$('sg').innerHTML='<div class="ld">'+esc(d.error)+'</div>';return;}
+  const mt=d.memory.total_kb,mu=mt-d.memory.available_kb,mp=mt?Math.round(100*mu/mt):0;
+  const dp=d.storage.total?Math.round(100*d.storage.used/d.storage.total):0;
+  $('sg').innerHTML=`
+  <div class="scard"><div class="sct">📱 Device</div>
+    <div class="sr"><span class="sk">Model</span><span class="sv">${esc(d.system.device_model||'N/A')}</span></div>
+    <div class="sr"><span class="sk">Android</span><span class="sv">${esc(d.system.android_version)} SDK${esc(d.system.android_sdk)}</span></div>
+    <div class="sr"><span class="sk">Hostname</span><span class="sv">${esc(d.system.hostname)}</span></div>
+    <div class="sr"><span class="sk">Uptime</span><span class="sv">${esc(d.system.uptime)}</span></div></div>
+  <div class="scard"><div class="sct">⚙️ CPU</div>
+    <div class="sr"><span class="sk">Model</span><span class="sv">${esc(d.cpu.model)}</span></div>
+    <div class="sr"><span class="sk">Cores</span><span class="sv">${esc(d.cpu.cores)}</span></div>
+    <div class="sr"><span class="sk">Arch</span><span class="sv">${esc(d.cpu.arch)}</span></div>
+    <div class="sr"><span class="sk">Kernel</span><span class="sv">${esc(d.system.kernel)}</span></div></div>
+  <div class="scard"><div class="sct">🧠 Memory</div>
+    <div class="br"><div class="bl"><span>Used</span><span>${fb(mu*1024)} / ${fb(mt*1024)}</span></div><div class="bt"><div class="bf" style="width:${mp}%"></div></div></div>
+    <div class="sr"><span class="sk">Total</span><span class="sv">${fb(mt*1024)}</span></div>
+    <div class="sr"><span class="sk">Available</span><span class="sv">${fb(d.memory.available_kb*1024)}</span></div>
+    <div class="sr"><span class="sk">Cached</span><span class="sv">${fb(d.memory.cached_kb*1024)}</span></div></div>
+  <div class="scard"><div class="sct">💾 Storage</div>
+    <div class="br"><div class="bl"><span>Used</span><span>${fb(d.storage.used)} / ${fb(d.storage.total)}</span></div><div class="bt"><div class="bf a" style="width:${dp}%"></div></div></div>
+    <div class="sr"><span class="sk">Total</span><span class="sv">${fb(d.storage.total)}</span></div>
+    <div class="sr"><span class="sk">Free</span><span class="sv">${fb(d.storage.free)}</span></div></div>
+  <div class="scard"><div class="sct">🐍 Software</div>
+    <div class="sr"><span class="sk">Python</span><span class="sv">${esc(d.system.python)}</span></div>
+    <div class="sr"><span class="sk">Platform</span><span class="sv">${esc(d.system.platform)}</span></div></div>`;
+}
+
+// ═══════════════════════════
+// MONITOR
+// ═══════════════════════════
+let allP=[],selPid=null,selPN='';
+async function loadMon(){
+  const d=await api('/api/monitor');if(d.error)return;
+  const cc=d.cpu_pct>75?'a':'',mc=d.mem_pct>75?'a':'g',dc=d.disk_pct>85?'a':'g';
+  $('gauges').innerHTML=`
+    <div class="gc"><div class="gv ${cc}">${d.cpu_pct}%</div><div class="gl">CPU</div><div class="gb"><div class="gbf cpu" style="width:${d.cpu_pct}%"></div></div></div>
+    <div class="gc"><div class="gv ${mc}">${d.mem_pct}%</div><div class="gl">Memory</div><div class="gsub">${fb(d.mem_used_kb*1024)}/${fb(d.mem_total_kb*1024)}</div><div class="gb"><div class="gbf mem" style="width:${d.mem_pct}%"></div></div></div>
+    <div class="gc"><div class="gv ${dc}">${d.disk_pct}%</div><div class="gl">Disk</div><div class="gsub">${fb(d.disk_used)}/${fb(d.disk_total)}</div><div class="gb"><div class="gbf dsk" style="width:${d.disk_pct}%"></div></div></div>
+    <div class="gc"><div class="gv" style="font-size:22px">🔋${d.battery!=='N/A'?d.battery+'%':d.battery}</div><div class="gl">Battery</div></div>
+    <div class="gc"><div class="gv g" style="font-size:18px">↓${fb(d.net_rx_bytes)}</div><div class="gl">RX</div></div>
+    <div class="gc"><div class="gv" style="font-size:18px">↑${fb(d.net_tx_bytes)}</div><div class="gl">TX</div></div>`;
+  allP=d.processes||[];$('mcnt').textContent=d.proc_count+' procs';filterP();
+}
+function filterP(){
+  const q=($('tmsrch').value||'').toLowerCase();
+  const fl=q?allP.filter(p=>p.name.toLowerCase().includes(q)||String(p.pid).includes(q)):allP;
+  $('tmcnt').textContent=`Showing ${fl.length} of ${allP.length}`;
+  const si=s=>({R:'🟢',S:'🔵',D:'🟡',Z:'💀',T:'⏸'}[s]||'⚪');
+  $('plist').innerHTML=fl.map(p=>`<div class="tmr ${p.pid===selPid?'sel':''}" onclick="selProc(${p.pid},'${esc(p.name)}')"><span class="cp">${p.pid}</span><span class="cn">${esc(p.name)}</span><span class="cs">${si(p.state)}</span><span class="cm">${fb(p.mem_kb*1024)}</span><span class="cc">${p.cpu_time}</span><span class="ct">${p.threads}</span></div>`).join('');
+}
+function selProc(pid,name){selPid=pid;selPN=name;document.querySelectorAll('.tmr').forEach(r=>r.classList.remove('sel'));event?.currentTarget?.classList.add('sel');$('kfab').classList.add('on');}
+function openKill(){if(!selPid)return;$('ksub').textContent=`PID ${selPid} — ${selPN}`;$('kov').classList.add('on');}
+function closeKill(){$('kov').classList.remove('on');}
+async function doKill(sig){if(!selPid)return;closeKill();const r=await post('/api/kill',{pid:selPid,signal:sig});if(r.success){selPid=null;$('kfab').classList.remove('on');setTimeout(loadMon,500);}else alert('Kill failed: '+r.error);}
+
+// ═══════════════════════════
+// USER
+// ═══════════════════════════
+async function loadUser(){
+  $('ug').innerHTML='<div class="ld">Loading…</div>';
+  const d=await api('/api/user');if(d.error){$('ug').innerHTML='<div class="ld">'+esc(d.error)+'</div>';return;}
+  const ini=(d.whoami||'?')[0].toUpperCase();
+  $('ug').innerHTML=`
+    <div class="uh"><div class="ua">${ini}</div><div><div class="un">${esc(d.whoami)}</div><div class="um">${esc(d.home)}</div><div class="um">Shell: ${esc(d.shell)}</div>${d.termux_version?`<div class="um">Termux ${esc(d.termux_version)}</div>`:''}</div></div>
+    <div class="scard"><div class="sct">👥 Account</div>
+      <div class="sr"><span class="sk">User</span><span class="sv">${esc(d.whoami)}</span></div>
+      <div class="sr"><span class="sk">Groups</span><span class="sv">${esc(d.groups)}</span></div>
+      <div class="sr"><span class="sk">Shell</span><span class="sv">${esc(d.shell)}</span></div>
+      <div class="sr"><span class="sk">Packages</span><span class="sv">${esc(d.packages_count)}</span></div>
+      <div class="sr"><span class="sk">Prefix</span><span class="sv">${esc(d.prefix)}</span></div>
+      ${d.ssh_keys.length?`<div class="sr"><span class="sk">SSH</span><span class="sv">${d.ssh_keys.map(esc).join(', ')}</span></div>`:''}</div>
+    <div class="scard"><div class="sct">📦 Packages</div><div class="tl">${d.installed_packages.slice(0,24).map(p=>`<span class="tag">${esc(p)}</span>`).join('')||'<span style="color:var(--t3);font-size:11px">None</span>'}</div></div>
+    <div class="scard"><div class="sct">🗂 PATH</div><div class="tl">${d.path_dirs.map(p=>`<span class="tag">${esc(p)}</span>`).join('')}</div></div>
+    <div class="scard" style="grid-column:1/-1"><div class="sct">🌍 Environment</div>
+      <div style="max-height:260px;overflow-y:auto;margin-top:8px"><table class="etbl">${d.env_vars.slice(0,40).map(e=>`<tr><td>${esc(e.key)}</td><td>${esc(e.value.substring(0,90))}</td></tr>`).join('')}</table></div></div>`;
+}
+
+// ═══════════════════════════
+// BOOT
+// ═══════════════════════════
+(async()=>{
+  try{const r=await api('/api/check');if(r.logged_in){$('ls').style.display='none';$('app').classList.add('on');initApp();}}catch(e){}
+})();
+</script>
+</body>
+</html>
